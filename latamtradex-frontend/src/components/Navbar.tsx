@@ -1,9 +1,13 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
-import { Search, ShoppingCart, User, Menu, X, Package, TrendingUp } from "lucide-react";
+import { Search, ShoppingCart, User, Menu, X, Package, TrendingUp, LogOut } from "lucide-react";
 
 const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const navigate = useNavigate();
+  const { user, isAuthenticated, logout } = useAuth();
 
   return (
     <nav className="sticky top-0 z-50 bg-card/95 backdrop-blur-md border-b border-border">
@@ -34,20 +38,42 @@ const Navbar = () => {
 
           {/* Desktop Navigation */}
           <div className="hidden md:flex items-center gap-4">
-            <Button variant="ghost" size="sm" className="gap-2">
-              <TrendingUp className="w-4 h-4" />
-              Mis Pedidos
+            <Button variant="ghost" size="sm" className="gap-2" onClick={() => navigate('/products')}>
+              <Package className="w-4 h-4" />
+              Products
             </Button>
-            <Button variant="ghost" size="icon">
-              <ShoppingCart className="w-5 h-5" />
-            </Button>
-            <Button variant="outline" size="sm" className="gap-2">
-              <User className="w-4 h-4" />
-              Ingresar
-            </Button>
-            <Button variant="hero" size="sm">
-              Registrarse
-            </Button>
+            {isAuthenticated && (
+              <>
+                <Button variant="ghost" size="sm" className="gap-2" onClick={() => navigate('/orders')}>
+                  <TrendingUp className="w-4 h-4" />
+                  My Orders
+                </Button>
+                <Button variant="ghost" size="icon">
+                  <ShoppingCart className="w-5 h-5" />
+                </Button>
+              </>
+            )}
+            {isAuthenticated ? (
+              <>
+                <span className="text-sm text-muted-foreground">
+                  {user?.name}
+                </span>
+                <Button variant="outline" size="sm" className="gap-2" onClick={logout}>
+                  <LogOut className="w-4 h-4" />
+                  Logout
+                </Button>
+              </>
+            ) : (
+              <>
+                <Button variant="outline" size="sm" className="gap-2" onClick={() => navigate('/login')}>
+                  <User className="w-4 h-4" />
+                  Login
+                </Button>
+                <Button variant="hero" size="sm" onClick={() => navigate('/register')}>
+                  Register
+                </Button>
+              </>
+            )}
           </div>
 
           {/* Mobile Menu Button */}
@@ -71,19 +97,43 @@ const Navbar = () => {
               />
             </div>
             <div className="flex flex-col gap-2">
-              <Button variant="ghost" className="justify-start gap-2">
-                <TrendingUp className="w-4 h-4" />
-                Mis Pedidos
+              <Button variant="ghost" className="justify-start gap-2" onClick={() => navigate('/products')}>
+                <Package className="w-4 h-4" />
+                Products
               </Button>
-              <Button variant="ghost" className="justify-start gap-2">
-                <ShoppingCart className="w-4 h-4" />
-                Carrito
-              </Button>
-              <Button variant="outline" className="justify-start gap-2">
-                <User className="w-4 h-4" />
-                Ingresar
-              </Button>
-              <Button variant="hero">Registrarse</Button>
+              {isAuthenticated && (
+                <>
+                  <Button variant="ghost" className="justify-start gap-2" onClick={() => navigate('/orders')}>
+                    <TrendingUp className="w-4 h-4" />
+                    My Orders
+                  </Button>
+                  <Button variant="ghost" className="justify-start gap-2">
+                    <ShoppingCart className="w-4 h-4" />
+                    Cart
+                  </Button>
+                </>
+              )}
+              {isAuthenticated ? (
+                <>
+                  <div className="px-3 py-2 text-sm text-muted-foreground">
+                    {user?.name}
+                  </div>
+                  <Button variant="outline" className="justify-start gap-2" onClick={logout}>
+                    <LogOut className="w-4 h-4" />
+                    Logout
+                  </Button>
+                </>
+              ) : (
+                <>
+                  <Button variant="outline" className="justify-start gap-2" onClick={() => navigate('/login')}>
+                    <User className="w-4 h-4" />
+                    Login
+                  </Button>
+                  <Button variant="hero" onClick={() => navigate('/register')}>
+                    Register
+                  </Button>
+                </>
+              )}
             </div>
           </div>
         )}
