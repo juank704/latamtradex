@@ -1,0 +1,206 @@
+version: '3.8'
+
+services:
+  # ===== INFRASTRUCTURE =====
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.5.0
+    container_name: latamtradex-zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+    ports:
+      - "2181:2181"
+    networks:
+      - latamtradex-network
+
+  kafka:
+    image: confluentinc/cp-kafka:7.5.0
+    container_name: latamtradex-kafka
+    depends_on:
+      - zookeeper
+    ports:
+      - "9092:9092"
+      - "9093:9093"
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092,PLAINTEXT_HOST://localhost:9093
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT,PLAINTEXT_HOST:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: 'true'
+    networks:
+      - latamtradex-network
+    healthcheck:
+      test: ["CMD-SHELL", "kafka-broker-api-versions --bootstrap-server localhost:9092"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-auth:
+    image: postgres:15-alpine
+    container_name: latamtradex-postgres-auth
+    environment:
+      POSTGRES_DB: auth_db
+      POSTGRES_USER: auth_user
+      POSTGRES_PASSWORD: auth_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-auth-data:/var/lib/postgresql/data
+    networks:
+      - latamtradex-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U auth_user -d auth_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  postgres-orders:
+    image: postgres:15-alpine
+    container_name: latamtradex-postgres-orders
+    environment:
+      POSTGRES_DB: orders_db
+      POSTGRES_USER: orders_user
+      POSTGRES_PASSWORD: orders_password
+    ports:
+      - "5433:5432"
+    volumes:
+      - postgres-orders-data:/var/lib/postgresql/data
+    networks:
+      - latamtradex-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U orders_user -d orders_db"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  mongodb:
+    image: mongo:7.0
+    container_name: latamtradex-mongodb
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: catalog_user
+      MONGO_INITDB_ROOT_PASSWORD: catalog_password
+      MONGO_INITDB_DATABASE: catalog_db
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongodb-data:/data/db
+    networks:
+      - latamtradex-network
+    healthcheck:
+      test: ["CMD", "mongosh", "--eval", "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ===== MICROSERVICES =====
+
+  api-gateway:
+    build:
+      context: ./services/api-gateway
+      dockerfile: Dockerfile
+    container_name: latamtradex-api-gateway
+    ports:
+      - "3000:3000"
+    environment:
+      PORT: 3000
+      KAFKA_BROKERS: kafka:9092
+      NODE_ENV: development
+    depends_on:
+      kafka:
+        condition: service_healthy
+    networks:
+      - latamtradex-network
+    volumes:
+      - ./services/api-gateway/src:/app/src
+      - ./services/shared:/app/shared
+    restart: unless-stopped
+
+  auth-service:
+    build:
+      context: ./services/auth-service
+      dockerfile: Dockerfile
+    container_name: latamtradex-auth-service
+    environment:
+      PORT: 3001
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_GROUP_ID: auth-service-group
+      DATABASE_HOST: postgres-auth
+      DATABASE_PORT: 5432
+      DATABASE_NAME: auth_db
+      DATABASE_USER: auth_user
+      DATABASE_PASSWORD: auth_password
+      JWT_SECRET: super-secret-jwt-key-change-in-production
+      NODE_ENV: development
+    depends_on:
+      kafka:
+        condition: service_healthy
+      postgres-auth:
+        condition: service_healthy
+    networks:
+      - latamtradex-network
+    volumes:
+      - ./services/auth-service/src:/app/src
+      - ./services/shared:/app/shared
+    restart: unless-stopped
+
+  catalog-service:
+    build:
+      context: ./services/catalog-service
+      dockerfile: Dockerfile
+    container_name: latamtradex-catalog-service
+    environment:
+      PORT: 3002
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_GROUP_ID: catalog-service-group
+      MONGODB_URI: mongodb://catalog_user:catalog_password@mongodb:27017/catalog_db?authSource=admin
+      NODE_ENV: development
+    depends_on:
+      kafka:
+        condition: service_healthy
+      mongodb:
+        condition: service_healthy
+    networks:
+      - latamtradex-network
+    volumes:
+      - ./services/catalog-service/src:/app/src
+      - ./services/shared:/app/shared
+    restart: unless-stopped
+
+  order-service:
+    build:
+      context: ./services/order-service
+      dockerfile: Dockerfile
+    container_name: latamtradex-order-service
+    environment:
+      PORT: 3003
+      KAFKA_BROKERS: kafka:9092
+      KAFKA_GROUP_ID: order-service-group
+      DATABASE_HOST: postgres-orders
+      DATABASE_PORT: 5432
+      DATABASE_NAME: orders_db
+      DATABASE_USER: orders_user
+      DATABASE_PASSWORD: orders_password
+      NODE_ENV: development
+    depends_on:
+      kafka:
+        condition: service_healthy
+      postgres-orders:
+        condition: service_healthy
+    networks:
+      - latamtradex-network
+    volumes:
+      - ./services/order-service/src:/app/src
+      - ./services/shared:/app/shared
+    restart: unless-stopped
+
+networks:
+  latamtradex-network:
+    driver: bridge
+
+volumes:
+  postgres-auth-data:
+  postgres-orders-data:
+  mongodb-data:

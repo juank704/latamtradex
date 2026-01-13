@@ -1,0 +1,45 @@
+{
+  "name": "latamtradex",
+  "version": "1.0.0",
+  "description": "Latam Tradex - B2B/B2C Platform for SMEs",
+  "private": true,
+  "workspaces": [
+    "services/api-gateway",
+    "services/auth-service",
+    "services/catalog-service",
+    "services/order-service"
+  ],
+  "scripts": {
+    "install:all": "npm install && cd services/api-gateway && npm install && cd ../auth-service && npm install && cd ../catalog-service && npm install && cd ../order-service && npm install",
+    "build:all": "npm run build:gateway && npm run build:auth && npm run build:catalog && npm run build:order",
+    "build:gateway": "cd services/api-gateway && npm run build",
+    "build:auth": "cd services/auth-service && npm run build",
+    "build:catalog": "cd services/catalog-service && npm run build",
+    "build:order": "cd services/order-service && npm run build",
+    "dev:gateway": "cd services/api-gateway && npm run start:dev",
+    "dev:auth": "cd services/auth-service && npm run start:dev",
+    "dev:catalog": "cd services/catalog-service && npm run start:dev",
+    "dev:order": "cd services/order-service && npm run start:dev",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:logs": "docker-compose logs -f",
+    "docker:build": "docker-compose build",
+    "docker:restart": "docker-compose down && docker-compose up -d",
+    "docker:clean": "docker-compose down -v --remove-orphans",
+    "kafka:topics": "docker exec -it latamtradex-kafka kafka-topics --bootstrap-server localhost:9092 --list",
+    "kafka:create-topics": "docker exec -it latamtradex-kafka kafka-topics --bootstrap-server localhost:9092 --create --topic user.registered --partitions 3 --replication-factor 1 && docker exec -it latamtradex-kafka kafka-topics --bootstrap-server localhost:9092 --create --topic order.created --partitions 3 --replication-factor 1 && docker exec -it latamtradex-kafka kafka-topics --bootstrap-server localhost:9092 --create --topic order.updated --partitions 3 --replication-factor 1 && docker exec -it latamtradex-kafka kafka-topics --bootstrap-server localhost:9092 --create --topic stock.updated --partitions 3 --replication-factor 1"
+  },
+  "keywords": [
+    "microservices",
+    "kafka",
+    "nestjs",
+    "event-driven",
+    "b2b",
+    "b2c"
+  ],
+  "author": "Latam Tradex Team",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
