@@ -99,8 +99,8 @@ services:
 
   api-gateway:
     build:
-      context: ./services/api-gateway
-      dockerfile: Dockerfile
+      context: ./services
+      dockerfile: api-gateway/Dockerfile
     container_name: latamtradex-api-gateway
     ports:
       - "3000:3000"
@@ -120,8 +120,8 @@ services:
 
   auth-service:
     build:
-      context: ./services/auth-service
-      dockerfile: Dockerfile
+      context: ./services
+      dockerfile: auth-service/Dockerfile
     container_name: latamtradex-auth-service
     environment:
       PORT: 3001
@@ -148,8 +148,8 @@ services:
 
   catalog-service:
     build:
-      context: ./services/catalog-service
-      dockerfile: Dockerfile
+      context: ./services
+      dockerfile: catalog-service/Dockerfile
     container_name: latamtradex-catalog-service
     environment:
       PORT: 3002
@@ -171,8 +171,8 @@ services:
 
   order-service:
     build:
-      context: ./services/order-service
-      dockerfile: Dockerfile
+      context: ./services
+      dockerfile: order-service/Dockerfile
     container_name: latamtradex-order-service
     environment:
       PORT: 3003

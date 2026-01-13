@@ -9,7 +9,7 @@ COPY shared /app/shared
 COPY auth-service/package*.json ./
 
 # Install dependencies
-RUN npm ci
+RUN npm install
 
 # Copy source code
 COPY auth-service/ ./
@@ -26,7 +26,7 @@ WORKDIR /app
 COPY auth-service/package*.json ./
 
 # Install production dependencies only
-RUN npm ci --only=production
+RUN npm install --production
 
 # Copy shared modules
 COPY --from=builder /app/shared /app/shared
@@ -38,4 +38,4 @@ COPY --from=builder /app/dist ./dist
 EXPOSE 3001
 
 # Start application
-CMD ["node", "dist/main"]
+CMD ["node", "dist/src/main"]

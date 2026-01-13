@@ -14,6 +14,7 @@ import { HealthController } from './health.controller';
     KafkaModule.register({
       clientId: 'api-gateway',
       brokers: (process.env.KAFKA_BROKERS || 'localhost:9093').split(','),
+      groupId: 'api-gateway-group',
     }),
     AuthModule,
     CatalogModule,
